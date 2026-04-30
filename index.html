@@ -1,65 +1,111 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Pingy Pongy</title>
+<head>
+    <title>BCKLR PONG</title>
     <style>
-      body { background: #000; display: flex; justify-content: center; height: 100vh margin: 0; overflow: hidden; }
-      #arena { width: 800px; height: 400px; background: #0a0a0a; border: 3px solid #d4af37; position: relative; cursor: none; }
-      #ball { width: 15px; height: 15px; background: #d4af37; position: absolute; box-shadow: 0 0 15px #d4af37; }
-      #paddle { width: 15px; height: 90px; background: #d4af37; position: absolute; left: 20px; box-shadow: 0 0 10px #d4af37; }
-      
+        body { 
+            background: #000; 
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+            color: gold;
+            font-family: sans-serif;
+        }
+        /* Centering the Arena */
+        #arena { 
+            width: 800px; 
+            height: 400px; 
+            background: #0a0a0a; 
+            border: 3px solid #d4af37; 
+            position: relative; 
+            cursor: none; 
+        }
+        #ball { width: 15px; height: 15px; background: #d4af37; position: absolute; box-shadow: 0 0 15px #d4af37; }
+        .paddle { width: 15px; height: 80px; background: #d4af37; position: absolute; box-shadow: 0 0 10px #d4af37; }
+        #player { left: 20px; }
+        #computer { right: 20px; }
     </style>
-  </head>
-  <body>
+</head>
+<body>
 
-
+    <h1>BCKLR PONG</h1>
     <div id="arena">
-      <div id="ball"></div>
-      <div id="paddle"></div>
+        <div id="ball"></div>
+        <div id="player" class="paddle"></div>
+        <div id="computer" class="paddle"></div>
     </div>
 
-<script> 
-const ball = document.getElementById('ball');
-const paddle = document.getElementById('paddle');
-const arena = document.getElementById('arena');
+<script>
+    const ball = document.getElementById('ball');
+    const player = document.getElementById('player');
+    const computer = document.getElementById('computer');
+    const arena = document.getElementById('arena');
 
-let bX = 400, bY = 200;
-let sX = 4, sY = 4;
-let pY = 150;
+    // Game Variables
+    let bX = 400, bY = 200; // Ball start position
+    let sX = 4, sY = 4;     // Ball speed
+    let pY = 160;           // Player position
+    let cY = 160;           // Computer position
 
+    // 1. Move Player Paddle & Keep it inside the box
+    arena.addEventListener('mousemove', (e) => {
+        let rect = arena.getBoundingClientRect();
+        let mouseY = e.clientY - rect.top - 40;
+        
+        // Boundaries: Don't let paddle go above 0 or below 320 (Arena height 400 - Paddle height 80)
+        if (mouseY < 0) pY = 0;
+        else if (mouseY > 320) pY = 320;
+        else pY = mouseY;
 
-arena.addEventListener('mousemove', (e) => {
-  let rect = arena.getBoundingClientRect ();
-  pY = e.clientY - rect.top - 45;
-  paddle.style.top = pY + 'px'; 
-});
+        player.style.top = pY + 'px';
+    });
 
-function gameLoop() {
-  bX += sX;
-  bY += sY;
-  
-if (bY <= 0 || bY >= 385) sY *= -1;
-  
-if (bX >= 785) sX *= -1;
-  
-if (bX <= 35 && bY > pY && bY < pY + 90) {
-  sX *= -1.1;
-  sY *= 1.1; 
-}
-  
+    function gameLoop() {
+        bX += sX;
+        bY += sY;
 
-if (bX < 0) {
-  bX = 400; bY = 200;
-  sX = 4; sY = 4;
-}
-  
-ball.style.left = bX + 'px';
-  ball.style.top = bY + 'px';
-  
-requestAnimationFrame(gameloop);
-}
+        // Bounce off top/bottom walls
+        if (bY <= 0 || bY >= 385) sY *= -1;
 
-gameLoop();
+        // Simple AI: Computer follows the ball
+        // We subtract 40 to aim for the center of the paddle
+        let computerTarget = bY - 40; 
+        cY += (computerTarget - cY) * 0.1; // The 0.1 makes it "lazy" so it doesn't move perfectly
+        computer.style.top = cY + 'px';
+
+        // COLLISION: Player Paddle (Left)
+        if (bX <= 35 && bY > pY && bY < pY + 80) {
+            sX *= -1.1; // Reverse and speed up
+            sY *= 1.1;
+            bX = 36; // Prevent ball getting stuck in paddle
+        }
+
+        // COLLISION: Computer Paddle (Right)
+        if (bX >= 750 && bY > cY && bY < cY + 80) {
+            sX *= -1.1;
+            sY *= 1.1;
+            bX = 749;
+        }
+
+        // RESET if someone misses
+        if (bX < 0 || bX > 800) {
+            bX = 400; bY = 200;
+            sX = (sX > 0) ? -4 : 4; // Reset speed but send to the winner
+            sY = 4;
+        }
+
+        // Update Ball visuals
+        ball.style.left = bX + 'px';
+        ball.style.top = bY + 'px';
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    // Start the game with the correct capitalization!
+    gameLoop();
 </script>
-  </body>
+</body>
 </html>
