@@ -1,30 +1,57 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>BCKLR PONG</title>
+    <meta charset="UTF-8">
+    <title>BCKLR PONG v2</title>
     <style>
+        /* This centers everything on your screen */
         body { 
             background: #000; 
+            margin: 0; 
             display: flex; 
             flex-direction: column;
             justify-content: center; 
             align-items: center; 
             height: 100vh; 
-            margin: 0; 
-            color: gold;
-            font-family: sans-serif;
+            color: #d4af37;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        /* Centering the Arena */
+
+        h1 { margin-bottom: 20px; letter-spacing: 5px; }
+
+        /* The Game Box */
         #arena { 
             width: 800px; 
             height: 400px; 
             background: #0a0a0a; 
             border: 3px solid #d4af37; 
             position: relative; 
-            cursor: none; 
+            overflow: hidden; /* This hides anything that tries to exit the box */
+            cursor: none;
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.2);
         }
-        #ball { width: 15px; height: 15px; background: #d4af37; position: absolute; box-shadow: 0 0 15px #d4af37; }
-        .paddle { width: 15px; height: 80px; background: #d4af37; position: absolute; box-shadow: 0 0 10px #d4af37; }
+
+        /* The Ball */
+        #ball { 
+            width: 15px; 
+            height: 15px; 
+            background: #d4af37; 
+            position: absolute; 
+            box-shadow: 0 0 15px #d4af37;
+            left: 400px;
+            top: 200px;
+        }
+
+        /* The Paddles */
+        .paddle { 
+            width: 15px; 
+            height: 80px; 
+            background: #d4af37; 
+            position: absolute; 
+            top: 160px; /* Starting position */
+            box-shadow: 0 0 10px #d4af37;
+        }
+
         #player { left: 20px; }
         #computer { right: 20px; }
     </style>
@@ -32,80 +59,83 @@
 <body>
 
     <h1>BCKLR PONG</h1>
+
     <div id="arena">
         <div id="ball"></div>
         <div id="player" class="paddle"></div>
         <div id="computer" class="paddle"></div>
     </div>
 
-<script>
-    const ball = document.getElementById('ball');
-    const player = document.getElementById('player');
-    const computer = document.getElementById('computer');
-    const arena = document.getElementById('arena');
+    <script>
+        // Grab elements
+        const ball = document.getElementById('ball');
+        const player = document.getElementById('player');
+        const computer = document.getElementById('computer');
+        const arena = document.getElementById('arena');
 
-    // Game Variables
-    let bX = 400, bY = 200; // Ball start position
-    let sX = 4, sY = 4;     // Ball speed
-    let pY = 160;           // Player position
-    let cY = 160;           // Computer position
+        // Initial State
+        let bX = 400, bY = 200; 
+        let sX = 5, sY = 5;     
+        let pY = 160;           
+        let cY = 160;           
 
-    // 1. Move Player Paddle & Keep it inside the box
-    arena.addEventListener('mousemove', (e) => {
-        let rect = arena.getBoundingClientRect();
-        let mouseY = e.clientY - rect.top - 40;
-        
-        // Boundaries: Don't let paddle go above 0 or below 320 (Arena height 400 - Paddle height 80)
-        if (mouseY < 0) pY = 0;
-        else if (mouseY > 320) pY = 320;
-        else pY = mouseY;
+        // MOUSE CONTROL
+        arena.addEventListener('mousemove', (e) => {
+            let rect = arena.getBoundingClientRect();
+            let mouseY = e.clientY - rect.top - 40; // 40 is half the paddle height
+            
+            // PADDLE LOCK: Prevents exiting the box
+            if (mouseY < 0) pY = 0;
+            else if (mouseY > 320) pY = 320; // 400 (height) - 80 (paddle)
+            else pY = mouseY;
 
-        player.style.top = pY + 'px';
-    });
+            player.style.top = pY + 'px';
+        });
 
-    function gameLoop() {
-        bX += sX;
-        bY += sY;
+        // THE BRAIN
+        function mainLoop() {
+            // 1. Move Ball
+            bX += sX;
+            bY += sY;
 
-        // Bounce off top/bottom walls
-        if (bY <= 0 || bY >= 385) sY *= -1;
+            // 2. Wall Bounces (Top/Bottom)
+            if (bY <= 0 || bY >= 385) {
+                sY *= -1;
+            }
 
-        // Simple AI: Computer follows the ball
-        // We subtract 40 to aim for the center of the paddle
-        let computerTarget = bY - 40; 
-        cY += (computerTarget - cY) * 0.1; // The 0.1 makes it "lazy" so it doesn't move perfectly
-        computer.style.top = cY + 'px';
+            // 3. AI Computer Movement
+            let target = bY - 40;
+            cY += (target - cY) * 0.1; // Smooth following
+            computer.style.top = cY + 'px';
 
-        // COLLISION: Player Paddle (Left)
-        if (bX <= 35 && bY > pY && bY < pY + 80) {
-            sX *= -1.1; // Reverse and speed up
-            sY *= 1.1;
-            bX = 36; // Prevent ball getting stuck in paddle
+            // 4. Player Paddle Collision
+            if (bX <= 35 && bY > pY && bY < pY + 80) {
+                sX *= -1.1; // Speed up 10%
+                bX = 36;    // Physics fix
+            }
+
+            // 5. Computer Paddle Collision
+            if (bX >= 750 && bY > cY && bY < cY + 80) {
+                sX *= -1.1;
+                bX = 749;   // Physics fix
+            }
+
+            // 6. Scoring/Reset
+            if (bX < 0 || bX > 800) {
+                bX = 400; bY = 200;
+                sX = (sX > 0) ? -5 : 5; // Reset speed, flip direction
+                sY = 5;
+            }
+
+            // 7. Render
+            ball.style.left = bX + 'px';
+            ball.style.top = bY + 'px';
+
+            requestAnimationFrame(mainLoop);
         }
 
-        // COLLISION: Computer Paddle (Right)
-        if (bX >= 750 && bY > cY && bY < cY + 80) {
-            sX *= -1.1;
-            sY *= 1.1;
-            bX = 749;
-        }
-
-        // RESET if someone misses
-        if (bX < 0 || bX > 800) {
-            bX = 400; bY = 200;
-            sX = (sX > 0) ? -4 : 4; // Reset speed but send to the winner
-            sY = 4;
-        }
-
-        // Update Ball visuals
-        ball.style.left = bX + 'px';
-        ball.style.top = bY + 'px';
-
-        requestAnimationFrame(gameLoop);
-    }
-
-    // Start the game with the correct capitalization!
-    gameLoop();
-</script>
+        // START
+        mainLoop();
+    </script>
 </body>
 </html>
