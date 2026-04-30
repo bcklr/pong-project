@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>BCKLR PONG PRO</title>
+    <title>BCKLR PONG - V3 PRO LOADED</title>
     <style>
         body { 
             background: #000; 
@@ -14,43 +14,45 @@
             height: 100vh; 
             color: #d4af37;
             font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
         }
 
-        /* Score Board */
+        /* The Scoreboard at the top */
         #scoreboard {
-            font-size: 3rem;
-            margin-bottom: 10px;
+            font-size: 48px;
+            margin-bottom: 20px;
             display: flex;
-            gap: 50px;
+            gap: 100px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
         }
 
         #arena { 
             width: 800px; 
             height: 400px; 
             background: #0a0a0a; 
-            border: 3px solid #d4af37; 
+            border: 4px solid #d4af37; 
             position: relative; 
-            overflow: hidden; 
             cursor: none;
-            box-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
+            box-shadow: 0 0 40px rgba(212, 175, 55, 0.2);
         }
 
-        /* Message Overlay for "You Lose" */
-        #message {
+        /* Centered "You Lose" Message */
+        #overlay {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 2rem;
-            display: none; /* Hidden by default */
-            z-index: 10;
-            background: rgba(0,0,0,0.8);
-            padding: 20px;
-            border: 1px solid gold;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px 40px;
+            border: 2px solid #d4af37;
+            display: none; /* Starts hidden */
+            z-index: 100;
+            text-align: center;
         }
 
-        #ball { width: 15px; height: 15px; background: #d4af37; position: absolute; box-shadow: 0 0 15px #d4af37; border-radius: 2px; }
-        .paddle { width: 15px; height: 80px; background: #d4af37; position: absolute; box-shadow: 0 0 10px #d4af37; }
+        #ball { width: 16px; height: 16px; background: #d4af37; position: absolute; box-shadow: 0 0 15px #d4af37; }
+        .paddle { width: 16px; height: 85px; background: #d4af37; position: absolute; box-shadow: 0 0 10px #d4af37; }
         #player { left: 20px; }
         #computer { right: 20px; }
     </style>
@@ -58,12 +60,12 @@
 <body>
 
     <div id="scoreboard">
-        <span id="playerScore">0</span>
-        <span id="botScore">0</span>
+        <div id="pScore">0</div>
+        <div id="bScore">0</div>
     </div>
 
     <div id="arena">
-        <div id="message">YOU LOST THE ROUND</div>
+        <div id="overlay">YOU LOST THE ROUND</div>
         <div id="ball"></div>
         <div id="player" class="paddle"></div>
         <div id="computer" class="paddle"></div>
@@ -74,86 +76,90 @@
         const player = document.getElementById('player');
         const computer = document.getElementById('computer');
         const arena = document.getElementById('arena');
-        const msg = document.getElementById('message');
-        const pScoreText = document.getElementById('playerScore');
-        const bScoreText = document.getElementById('botScore');
+        const overlay = document.getElementById('overlay');
+        const pScoreDisplay = document.getElementById('pScore');
+        const bScoreDisplay = document.getElementById('bScore');
 
+        // Game State
         let bX = 400, bY = 200; 
-        let sX = 5, sY = 5;     
-        let pY = 160;           
-        let cY = 160;   
-        let pScore = 0;
-        let bScore = 0;
+        let sX = 6, sY = 6;     
+        let pY = 157, cY = 157; 
+        let playerScore = 0, botScore = 0;
 
-        // MOUSE CONTROL
+        // Player Paddle Logic
         arena.addEventListener('mousemove', (e) => {
             let rect = arena.getBoundingClientRect();
-            let mouseY = e.clientY - rect.top - 40;
+            let mouseY = e.clientY - rect.top - 42; 
             if (mouseY < 0) pY = 0;
-            else if (mouseY > 320) pY = 320;
+            else if (mouseY > 315) pY = 315;
             else pY = mouseY;
             player.style.top = pY + 'px';
         });
 
-        function resetRound(winner) {
-            if(winner === 'bot') {
-                bScore++;
-                bScoreText.innerText = bScore;
-                msg.style.display = "block";
-                setTimeout(() => { msg.style.display = "none"; }, 1000);
+        // Function to handle scoring
+        function score(winner) {
+            if (winner === 'bot') {
+                botScore++;
+                bScoreDisplay.innerText = botScore;
+                overlay.style.display = "block";
+                setTimeout(() => { overlay.style.display = "none"; }, 1000);
             } else {
-                pScore++;
-                pScoreText.innerText = pScore;
+                playerScore++;
+                pScoreDisplay.innerText = playerScore;
             }
-
+            // Reset Ball
             bX = 400; bY = 200;
-            sX = (sX > 0) ? -5 : 5; // Send ball to the winner
-            sY = 5;
+            sX = (sX > 0) ? -6 : 6; // Hit it toward the winner
+            sY = 6;
         }
 
-        function mainLoop() {
+        function engine() {
             bX += sX;
             bY += sY;
 
             // Wall Bounces
-            if (bY <= 0 || bY >= 385) sY *= -1;
+            if (bY <= 0 || bY >= 384) sY *= -1;
 
             // --- SMARTER AI ---
-            // The bot only "reacts" if the ball is moving toward it (sX > 0)
-            if (sX > 0) {
-                let target = bY - 40;
-                // 0.12 makes it slightly faster than before, but still beatable
-                cY += (target - cY) * 0.12; 
+            // Only "watches" and moves if ball is past the halfway mark (400px)
+            if (bX > 350) {
+                let centerOfPaddle = cY + 42;
+                if (centerOfPaddle < bY - 10) {
+                    cY += 7; // Moving down to catch ball
+                } else if (centerOfPaddle > bY + 10) {
+                    cY -= 7; // Moving up to catch ball
+                }
             }
-            
-            // Keep bot paddle inside arena
+
+            // Lock Computer Paddle
             if (cY < 0) cY = 0;
-            if (cY > 320) cY = 320;
+            if (cY > 315) cY = 315;
             computer.style.top = cY + 'px';
 
-            // Player Collision
-            if (bX <= 35 && bY > pY && bY < pY + 80) {
+            // Collision: Player
+            if (bX <= 36 && bY > pY && bY < pY + 85) {
                 sX *= -1.1; 
-                bX = 36;
+                bX = 37; // Push ball out
             }
 
-            // Computer Collision
-            if (bX >= 750 && bY > cY && bY < cY + 80) {
+            // Collision: Computer
+            if (bX >= 748 && bY > cY && bY < cY + 85) {
                 sX *= -1.1;
-                bX = 749;
+                bX = 747; // Push ball out
             }
 
-            // Scoring
-            if (bX < 0) resetRound('bot');
-            if (bX > 800) resetRound('player');
+            // Scoring Checks
+            if (bX < 0) score('bot');
+            if (bX > 800) score('player');
 
+            // Render positions
             ball.style.left = bX + 'px';
             ball.style.top = bY + 'px';
 
-            requestAnimationFrame(mainLoop);
+            requestAnimationFrame(engine);
         }
 
-        mainLoop();
+        engine();
     </script>
 </body>
 </html>
