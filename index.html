@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Pingy Pongy</title>
+    <style>
+      body { background: #000; display: flex; justify-content: center; height: 100vh margin: 0; overflow: hidden; }
+      #arena { width: 800px; height: 400px; background: #0a0a0a; border: 3px solid #d4af37; position: relative; cursor: none; }
+      #ball { width: 15px; height: 15px; background: #d4af37; position: absolute; box-shadow: 0 0 15px #d4af37; }
+      #paddle { width: 15px; height: 90px; background: #d4af37; position: absolute; left: 20px; box-shadow: 0 0 10px #d4af37; }
+      
+    </style>
+  </head>
+  <body>
+
+
+    <div id="arena">
+      <div id="ball"></div>
+      <div id="paddle"></div>
+    </div>
+
+<script> 
+const ball = document.getElementById('ball');
+const paddle = document.getElementById('paddle');
+const arena = document.getElementById('arena');
+
+let bX = 400, bY = 200;
+let sX = 4, sY = 4;
+let pY = 150;
+
+
+arena.addEventListener('mousemove', (e) => {
+  let rect = arena.getBoundingClientRect ();
+  pY = e.clientY - rect.top - 45;
+  paddle.style.top = pY + 'px'; 
+});
+
+function gameLoop() {
+  bX += sX;
+  bY += sY;
+  
+if (bY <= 0 || bY >= 385) sY *= -1;
+  
+if (bX >= 785) sX *= -1;
+  
+if (bX <= 35 && bY > pY && bY < pY + 90) {
+  sX *= -1.1;
+  sY *= 1.1; 
+}
+  
+
+if (bX < 0) {
+  bX = 400; bY = 200;
+  sX = 4; sY = 4;
+}
+  
+ball.style.left = bX + 'px';
+  ball.style.top = bY + 'px';
+  
+requestAnimationFrame(gameloop);
+}
+
+gameLoop();
+</script>
+  </body>
+</html>
